@@ -3,6 +3,7 @@ import requests as rqs
 
 from web_scrapper.common import config
 
+
 class Homepage:
 
     def __init__(self, news_site_uid,url):
@@ -21,10 +22,10 @@ class Homepage:
 
         return link_list
 
-    def _select(self,query):
+    def _select(self, query):
         return self._html.select(query)
 
-    def _visit(self,url):
+    def _visit(self, url):
         response = rqs.get(url)
         response.raise_for_status()
-        self._html = bs4.BeautifulSoup(response.text,'html.parser')
+        self._html = bs4.BeautifulSoup(response.text, 'html.parser')

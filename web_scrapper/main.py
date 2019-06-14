@@ -15,6 +15,7 @@ def _news_scraper(news_site_uid):
     for link in homepage.article_links:
         print(link)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
