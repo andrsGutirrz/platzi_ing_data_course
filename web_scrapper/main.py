@@ -1,7 +1,9 @@
 import argparse
 import logging
 import re
-from requests.exceptions import HTTPError, InvalidSchema
+import datetime
+import csv
+from requests.exceptions import HTTPError, InvalidSchema,MissingSchema
 from urllib3.exceptions import MaxRetryError
 from web_scrapper.common import config
 import web_scrapper.news_page_objects as news
@@ -12,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 is_well_formed_link = re.compile(r'https?://.+/.+$')
 is_root_path = re.compile(r'^/.+$')
+
 
 def _news_scraper(news_site_uid): #news_site_uid: eluniversal
     host = config()['news_sites'][news_site_uid]['url'] # http://www.eluniversal.com.mx
@@ -27,6 +30,22 @@ def _news_scraper(news_site_uid): #news_site_uid: eluniversal
             print(article.title)
 
     print(len(articles))
+    _save_articles(news_site_uid, articles)
+
+
+def _save_articles(news_site_uid, articles):
+    now = datetime.datetime.now().strftime('%Y_%m_%d')
+    out_file_name = f'{news_site_uid}_{now}'
+    csv_headers = list(filter(lambda property: not property.startswith('_'),
+                       dir(articles[0])))
+
+    with open(out_file_name, mode='w+') as f:
+        writer = csv.writer(f)
+        writer.writerow(csv_headers)
+
+        for article in articles:
+            row = [str(getattr(article, prop)) for prop in csv_headers]
+            writer.writerow(row)
 
 
 def _fetch_article(news_site_uid, host, link):
@@ -35,8 +54,8 @@ def _fetch_article(news_site_uid, host, link):
     article = None
     try:
         article = news.ArticlePage(news_site_uid, _build_link(host, link))
-    except (HTTPError, MaxRetryError, InvalidSchema) as e:
-        logger.warning(f'Error while fetching: {e}',exc_info=False)
+    except (HTTPError, MaxRetryError, InvalidSchema, MissingSchema) as e:
+        logger.warning(f'Error while fetching: {e}', exc_info=False)
 
     if article and not article.body:
         logger.warning('Invalid article. There is no body')
@@ -58,11 +77,11 @@ def _build_link(host, link):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    news_site_choises = list(config()['news_sites'].keys())
+    news_site_choices = list(config()['news_sites'].keys())
     parser.add_argument('news_site',
                         help='The news site that you want to scrape',
                         type=str,
-                        choices=news_site_choises
+                        choices=news_site_choices
                         )
     args = parser.parse_args()
     _news_scraper(args.news_site)
